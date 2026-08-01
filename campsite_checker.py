@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import requests
 
@@ -20,7 +20,20 @@ def load_user_configs():
         return data
     return []
 
-HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+# Complete browser headers to pass ReserveAmerica firewall checks
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.reserveamerica.com/",
+    "Origin": "https://www.reserveamerica.com",
+    "Sec-Ch-Ua": '"Not-A.Brand";v="99", "Chromium";v="124", "Google Chrome";v="124"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin"
+}
 
 def send_telegram_alert(chat_id, park_name, park_id, start_date, end_date, site_number, site_id, loop_name="", electric=False):
     if not TELEGRAM_BOT_TOKEN or not chat_id:
@@ -51,7 +64,7 @@ def send_telegram_alert(chat_id, park_name, park_id, start_date, end_date, site_
     except Exception as e:
         print(f"Error posting alert to Telegram: {e}")
 
-def check_user_availability(user):
+def check_user_availability(session, user):
     chat_id = user.get('chat_id')
     park_id = user.get('park_id', '70010')
     park_name = user.get('park_name', 'ReserveAmerica Park')
@@ -68,7 +81,7 @@ def check_user_availability(user):
     grid_url = f"https://www.reserveamerica.com/api/availability/map?parkId={park_id}&startDate={start_date}&endDate={end_date}"
     
     try:
-        res = requests.get(grid_url, headers=HEADERS, timeout=15)
+        res = session.get(grid_url, headers=HEADERS, timeout=15)
         if res.status_code != 200:
             print(f"❌ HTTP Error {res.status_code} reaching ReserveAmerica API.")
             return
@@ -101,5 +114,13 @@ def check_user_availability(user):
 if __name__ == "__main__":
     users = load_user_configs()
     print(f"Loaded search profiles for {len(users)} user(s). Beginning scan...")
+    
+    # Establish session & obtain initial cookies from homepage
+    session = requests.Session()
+    try:
+        session.get("https://www.reserveamerica.com/", headers=HEADERS, timeout=10)
+    except Exception as e:
+        print(f"Note: Initial session fetch hit: {e}")
+
     for user in users:
-        check_user_availability(user)
+        check_user_availability(session, user)
