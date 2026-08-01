@@ -61,15 +61,21 @@ def check_user_availability(user):
     electric_req = user.get('electric_required', False)
 
     if not chat_id or not start_date or not end_date:
+        print(f"⚠️ Skipping profile for {user.get('user_name', 'Unknown')}: Missing Chat ID or dates.")
         return
 
+    print(f"🔎 Scanning {park_name} (ID: {park_id}) for {start_date} to {end_date}...")
     grid_url = f"https://www.reserveamerica.com/api/availability/map?parkId={park_id}&startDate={start_date}&endDate={end_date}"
     
     try:
         res = requests.get(grid_url, headers=HEADERS, timeout=15)
         if res.status_code != 200:
+            print(f"❌ HTTP Error {res.status_code} reaching ReserveAmerica API.")
             return
+
         campsites = res.json().get('campsites', {})
+        found = 0
+
         for site_id, site_info in campsites.items():
             site_num = str(site_info.get('siteNumber', '')).strip()
             is_available = site_info.get('available', False)
@@ -82,10 +88,15 @@ def check_user_availability(user):
                     continue
                     
             if is_available:
-                print(f"Match found for Chat ID {chat_id}! Site #{site_num} is AVAILABLE.")
+                found += 1
+                print(f"🎉 Match found for Chat ID {chat_id}! Site #{site_num} is AVAILABLE.")
                 send_telegram_alert(chat_id, park_name, park_id, start_date, end_date, site_num, site_id, site_info.get('loop', ''), electric_req)
+
+        if found == 0:
+            print(f"✅ Scan complete for {park_name}: 0 matching sites available right now.")
+
     except Exception as e:
-        print(f"Error scanning {park_name} for user {chat_id}: {e}")
+        print(f"❌ Error scanning {park_name} for user {chat_id}: {e}")
 
 if __name__ == "__main__":
     users = load_user_configs()
