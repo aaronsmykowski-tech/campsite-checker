@@ -8,7 +8,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 def load_user_configs():
     if not os.path.exists(CONFIG_FILE):
         return []
-    with open(CONFIG_FILE, 'r') as f:
+    with open(CONFIG_FILE, 'r', encoding='utf-8-sig') as f:
         data = json.load(f)
     if isinstance(data, dict) and "users" in data:
         return data["users"]
