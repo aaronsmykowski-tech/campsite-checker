@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Campsite Filter Settings</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-color: var(--tg-theme-bg-color, #17212b);
+      --text-color: var(--tg-theme-text-color, #f5f5f5);
+      --hint-color: var(--tg-theme-hint-color, #708499);
+      --button-color: var(--tg-theme-button-color, #2ea6ff);
+      --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+      --secondary-bg: var(--tg-theme-secondary-bg-color, #232e3c);
+      --input-bg: rgba(255, 255, 255, 0.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; font-size: 15px; }
+    .container { max-width: 480px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 16px; }
+    .header h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .header p { color: var(--hint-color); font-size: 13px; }
+    .user-badge { background: rgba(46, 166, 255, 0.15); color: var(--button-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; display: inline-block; margin-top: 6px; font-weight: 600; }
+    .card { background-color: var(--secondary-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .form-group { margin-bottom: 14px; }
+    .form-group:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--hint-color); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    select, input[type="text"], input[type="date"], input[type="password"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-color: var(--input-bg); color: var(--text-color); font-size: 15px; outline: none; }
+    .date-row { display: table; width: 100%; }
+    .date-col { display: table-cell; width: 50%; }
+    .date-col:first-child { padding-right: 6px; }
+    .date-col:last-child { padding-left: 6px; }
+    .toggle-row { display: table; width: 100%; padding-top: 4px; }
+    .toggle-label { display: table-cell; vertical-align: middle; font-size: 15px; }
+    .toggle-switch { display: table-cell; text-align: right; vertical-align: middle; width: 50px; }
+    .switch { position: relative; display: inline-block; width: 48px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #4a5768; transition: .3s; border-radius: 26px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--button-color); }
+    input:checked + .slider:before { transform: translateX(22px); }
+    .btn-submit { width: 100%; padding: 14px; background-color: var(--button-color); color: var(--button-text-color); border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .status-msg { margin-top: 12px; padding: 10px; border-radius: 8px; text-align: center; font-size: 13px; display: none; }
+    .status-success { background-color: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+    .status-error { background-color: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>🏕️ Campsite Monitor Setup</h2>
+      <div id="userBadge" class="user-badge">Detecting Telegram Account...</div>
+    </div>
+
+    <form id="filterForm">
+      <div class="card">
+        <div class="form-group">
+          <label for="parkSelect">State Park / Campground</label>
+          <select id="parkSelect" onchange="handleParkChange()">
+            <option value="70010|Allegheny State Park">Allegheny State Park (70010)</option>
+            <option value="70015|Letchworth State Park">Letchworth State Park (70015)</option>
+            <option value="70022|Watkins Glen State Park">Watkins Glen State Park (70022)</option>
+            <option value="70030|Hamlin Beach State Park">Hamlin Beach State Park (70030)</option>
+            <option value="custom">-- Custom ReserveAmerica Park ID --</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="customParkGroup" style="display: none;">
+          <label for="customParkId">Custom Park ID</label>
+          <input type="text" id="customParkId" placeholder="e.g. 70010">
+        </div>
+
+        <div class="form-group">
+          <div class="date-row">
+            <div class="date-col">
+              <label for="startDate">Check-In</label>
+              <input type="date" id="startDate" required>
+            </div>
+            <div class="date-col">
+              <label for="endDate">Check-Out</label>
+              <input type="date" id="endDate" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="targetSites">Specific Site #s (Optional)</label>
+          <input type="text" id="targetSites" placeholder="e.g. 14, 15, 18 (blank for all)">
+        </div>
+
+        <div class="form-group">
+          <div class="toggle-row">
+            <div class="toggle-label">Require Electric Hookups</div>
+            <div class="toggle-switch">
+              <label class="switch">
+                <input type="checkbox" id="electricRequired" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <label>App Host Credentials</label>
+        <div class="form-group">
+          <input type="text" id="repoOwner" placeholder="GitHub Username / Owner" required>
+        </div>
+        <div class="form-group">
+          <input type="text" id="repoName" placeholder="Repository Name (e.g. campsite-checker)" required>
+        </div>
+        <div class="form-group">
+          <input type="password" id="ghToken" placeholder="GitHub Personal Access Token" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="saveBtn">💾 Save My Search</button>
+    </form>
+
+    <div id="statusMsg" class="status-msg"></div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let chatId = "712345678";
+    let userName = "Guest User";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        chatId = String(tg.initDataUnsafe.user.id);
+        userName = tg.initDataUnsafe.user.first_name || "User";
+        document.getElementById("userBadge").innerText = `👤 Connected as: ${userName} (ID: ${chatId})`;
+      } else {
+        document.getElementById("userBadge").innerText = `👤 Connected as: ${userName}`;
+      }
+
+      document.getElementById("repoOwner").value = localStorage.getItem("gh_owner") || "";
+      document.getElementById("repoName").value = localStorage.getItem("gh_repo") || "";
+      document.getElementById("ghToken").value = localStorage.getItem("gh_token") || "";
+
+      const today = new Date();
+      const nextFri = new Date();
+      nextFri.setDate(today.getDate() + ((5 + 7 - today.getDay()) % 7 || 7));
+      const nextSun = new Date(nextFri);
+      nextSun.setDate(nextFri.getDate() + 2);
+
+      document.getElementById("startDate").value = nextFri.toISOString().split('T')[0];
+      document.getElementById("endDate").value = nextSun.toISOString().split('T')[0];
+    });
+
+    function handleParkChange() {
+      const val = document.getElementById("parkSelect").value;
+      document.getElementById("customParkGroup").style.display = (val === "custom") ? "block" : "none";
+    }
+
+    document.getElementById("filterForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById("saveBtn");
+      const statusMsg = document.getElementById("statusMsg");
+
+      saveBtn.disabled = true;
+      saveBtn.innerText = "⏳ Saving profile...";
+      statusMsg.style.display = "none";
+
+      const parkSelectVal = document.getElementById("parkSelect").value;
+      let parkId, parkName;
+
+      if (parkSelectVal === "custom") {
+        parkId = document.getElementById("customParkId").value.trim();
+        parkName = "Custom ReserveAmerica Park";
+      } else {
+        const parts = parkSelectVal.split("|");
+        parkId = parts[0];
+        parkName = parts[1];
+      }
+
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+      const targetSitesRaw = document.getElementById("targetSites").value;
+      const targetSites = targetSitesRaw ? targetSitesRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
+      const electricRequired = document.getElementById("electricRequired").checked;
+
+      const owner = document.getElementById("repoOwner").value.trim();
+      const repo = document.getElementById("repoName").value.trim();
+      const token = document.getElementById("ghToken").value.trim();
+
+      localStorage.setItem("gh_owner", owner);
+      localStorage.setItem("gh_repo", repo);
+      localStorage.setItem("gh_token", token);
+
+      const userProfile = {
+        chat_id: chatId,
+        user_name: userName,
+        park_id: parkId,
+        park_name: parkName,
+        start_date: startDate,
+        end_date: endDate,
+        target_sites: targetSites,
+        electric_required: electricRequired
+      };
+
+      try {
+        const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/config.json`;
+        const getRes = await fetch(getUrl, {
+          headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github.v3+json` }
+        });
+
+        let currentConfig = { users: [] };
+        let sha = "";
+
+        if (getRes.ok) {
+          const getJson = await getRes.json();
+          sha = getJson.sha;
+          const decoded = JSON.parse(atob(getJson.content));
+          if (decoded.users && Array.isArray(decoded.users)) {
+            currentConfig = decoded;
+          }
+        }
+
+        // Upsert user profile into array
+        const existingIdx = currentConfig.users.findIndex(u => u.chat_id === chatId);
+        if (existingIdx >= 0) {
+          currentConfig.users[existingIdx] = userProfile;
+        } else {
+          currentConfig.users.push(userProfile);
+        }
+
+        // Commit updated array to GitHub
+        const contentEncoded = btoa(JSON.stringify(currentConfig, null, 2));
+        const putRes = await fetch(getUrl, {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/vnd.github.v3+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: `Update search profile for ${userName} (${chatId})`,
+            content: contentEncoded,
+            sha: sha || undefined
+          })
+        });
+
+        if (!putRes.ok) throw new Error(`GitHub API Error: ${putRes.statusText}`);
+
+        // Trigger immediate workflow run
+        const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/checker.yml/dispatches`;
+        await fetch(dispatchUrl, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Accept": "application/vnd.github.v3+json", "Content-Type": "application/json" },
+          body: JSON.stringify({ ref: "main" })
+        });
+
+        statusMsg.className = "status-msg status-success";
+        statusMsg.innerText = "✅ Search saved! Scraper triggered for your chat.";
+        statusMsg.style.display = "block";
+        saveBtn.innerText = "✅ Saved!";
+
+        setTimeout(() => { if (tg && tg.close) tg.close(); }, 1800);
+
+      } catch (err) {
+        statusMsg.className = "status-msg status-error";
+        statusMsg.innerText = `Error: ${err.message}. Check GitHub token/repo settings.`;
+        statusMsg.style.display = "block";
+        saveBtn.disabled = false;
+        saveBtn.innerText = "💾 Save My Search";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+﻿{
+  "users": [
+    {
+      "chat_id": "712345678",
+      "user_name": "Aaron",
+      "park_id": "70010",
+      "park_name": "Allegheny State Park",
+      "start_date": "2026-09-12",
+      "end_date": "2026-09-14",
+      "target_sites": ["14", "15", "18"],
+      "electric_required": true
+    }
+  ]
+}
